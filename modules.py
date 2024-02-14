@@ -11,7 +11,6 @@ from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
 random_number = random.uniform(3, 5)
 now = datetime.now()
@@ -35,6 +34,8 @@ def web_driver(IS_COLAB):
         driver = webdriver.Chrome(options=options)
 
     else:
+        from webdriver_manager.chrome import ChromeDriverManager
+
         driver = webdriver.Chrome(
             service=Service(ChromeDriverManager().install()), options=options
         )
