@@ -1,0 +1,9 @@
+# file 확장자
+*.xlsx
+*.csv
+*.ipynb
+
+# .pyc
+__pycache__/
+
+.DS_Store
