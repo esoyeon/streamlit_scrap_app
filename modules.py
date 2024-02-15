@@ -75,7 +75,7 @@ def get_data(keyword, startdate, enddate):
             break
 
     # 일단 스코롤 모두 내림 -> 파싱 시작
-
+    time.sleep(5)
     soup = BeautifulSoup(driver.page_source, "html.parser")
 
     driver.quit()
@@ -157,9 +157,12 @@ def clean_data(df):
     df["date"] = df["date"].apply(convert_date)
 
     # 2. 중복 데이터 삭제
-    df.drop_duplicates(inplace=True, ignore_index=True)
+    n_total = len(df)
+    n_duplicates = len(df[df.duplicated()])
+    df_final = df.drop_duplicates(ignore_index=True)
+    n_final = len(df_final)
 
-    return df
+    return df_final, n_total, n_duplicates, n_final
 
 
 if __name__ == "__main__":
