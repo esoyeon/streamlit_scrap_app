@@ -187,7 +187,7 @@ if st.session_state.clicked:
 
     name = f"네이버뉴스_{keyword}_{start_date}-{end_date}.csv"
     st.session_state.last_file = name
-    df_final.to_csv(name, index=False)
+    df_final.to_csv(name, index=False, encoding="utf-8-sig")
 
     # 상태변경 (파일 다운로드 & 클릭 해제)
     st.session_state.file_ready = True
