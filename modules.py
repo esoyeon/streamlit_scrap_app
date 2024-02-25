@@ -86,7 +86,14 @@ def get_data(keyword, startdate, enddate):
 
 
 def parse_data(soup):
-    dic_news = {"title": [], "date": [], "media": [], "url": []}
+    dic_news = {
+        "title": [],
+        "date": [],
+        "media": [],
+        "url": [],
+        "paper": [],
+        "writer": [],
+    }
 
     for bx in tqdm(soup.select("ul.list_news li.bx")):
         # 원래 페이지 박스별 뉴스 기사 수집
@@ -96,6 +103,29 @@ def parse_data(soup):
             bx.select_one("a.info").text.replace("언론사 선정", "")
         )
         dic_news["url"].append(bx.select_one("a.news_tit")["href"])
+
+        # 지면기사 판단
+        paper_val = ""
+        for info in bx.select("div.info_group span.info"):
+            if "면" in info.text:
+                paper_val = "지면기사"
+
+        dic_news["paper"].append(paper_val)
+
+        # 기자 이름 판단
+        writer_val = ""
+        if "네이버뉴스" in bx.select("a.info")[-1].text:
+            url_writer = bx.select("a.info")[-1]["href"]
+            resp_wrt = requests.get(url_writer)
+            soup_wrt = BeautifulSoup(resp_wrt.text, "html.parser")
+
+            # 기자명이 있다면
+            if soup_wrt.select("em.media_end_head_journalist_name"):
+                writer_val = soup_wrt.select("em.media_end_head_journalist_name")[
+                    0
+                ].text
+
+        dic_news["writer"].append(writer_val)
 
         # 더보기 페이지 박스별 뉴스 기사 수집
         if bx.select("a.news_more"):
@@ -114,6 +144,29 @@ def parse_data(soup):
                     div.select_one("a.info").text.replace("언론사 선정", "")
                 )
                 dic_news["url"].append(div.select_one("a.news_tit")["href"])
+
+                # 지면기사 판단
+                paper_val = ""
+                for info in div.select("div.info_group span.info"):
+                    if "면" in info.text:
+                        paper_val = "지면기사"
+
+                dic_news["paper"].append(paper_val)
+
+                # 기자 이름 판단
+                writer_val = ""
+                if "네이버뉴스" in div.select("a.info")[-1].text:
+                    url_writer = div.select("a.info")[-1]["href"]
+                    resp_wrt = requests.get(url_writer)
+                    soup_wrt = BeautifulSoup(resp_wrt.text, "html.parser")
+
+                    # 기자명이 있다면
+                    if soup_wrt.select("em.media_end_head_journalist_name"):
+                        writer_val = soup_wrt.select(
+                            "em.media_end_head_journalist_name"
+                        )[0].text
+
+                dic_news["writer"].append(writer_val)
 
     df = pd.DataFrame(dic_news)
     return df
