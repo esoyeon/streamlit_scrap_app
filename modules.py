@@ -105,10 +105,10 @@ def parse_data(soup):
         dic_news["url"].append(bx.select_one("a.news_tit")["href"])
 
         # 지면기사 판단
-        paper_val = ""
+        paper_val = "online"
         for info in bx.select("div.info_group span.info"):
             if "면" in info.text:
-                paper_val = "지면기사"
+                paper_val = "print"
 
         dic_news["paper"].append(paper_val)
 
@@ -124,6 +124,7 @@ def parse_data(soup):
                 writer_val = soup_wrt.select("em.media_end_head_journalist_name")[
                     0
                 ].text
+                writer_val = writer_val.replace("기자", "").strip()
 
         dic_news["writer"].append(writer_val)
 
@@ -146,10 +147,10 @@ def parse_data(soup):
                 dic_news["url"].append(div.select_one("a.news_tit")["href"])
 
                 # 지면기사 판단
-                paper_val = ""
+                paper_val = "online"
                 for info in div.select("div.info_group span.info"):
                     if "면" in info.text:
-                        paper_val = "지면기사"
+                        paper_val = "print"
 
                 dic_news["paper"].append(paper_val)
 
@@ -165,6 +166,8 @@ def parse_data(soup):
                         writer_val = soup_wrt.select(
                             "em.media_end_head_journalist_name"
                         )[0].text
+
+                        writer_val = writer_val.replace("기자", "").strip()
 
                 dic_news["writer"].append(writer_val)
 
