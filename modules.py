@@ -42,12 +42,12 @@ def web_driver(IS_COLAB):
     return driver
 
 
-def get_data(keyword, startdate, enddate):
+def get_data(keyword, startdate, enddate, IS_COLAB=True):
     # 직접입력 url
     url = f"https://search.naver.com/search.naver?where=news&query={keyword}&sm=tab_opt&sort=0&photo=0&field=0&pd=3&ds={startdate}&de={enddate}"
 
     print(url)
-    driver = web_driver()
+    driver = web_driver(IS_COLAB)
     driver.get(url)
 
     last_height = driver.execute_script("return document.body.scrollHeight")
@@ -96,37 +96,59 @@ def parse_data(soup):
     }
 
     for bx in tqdm(soup.select("ul.list_news li.bx")):
-        # 원래 페이지 박스별 뉴스 기사 수집
-        dic_news["title"].append(bx.select_one("a.news_tit").text)
-        dic_news["date"].append(bx.select("span.info")[-1].text)
-        dic_news["media"].append(
-            bx.select_one("a.info").text.replace("언론사 선정", "")
+
+        title_val, date_val, media_val, url_val, paper_val, writer_val = (
+            "",
+            "",
+            "",
+            "",
+            "online",
+            "",
         )
-        dic_news["url"].append(bx.select_one("a.news_tit")["href"])
 
-        # 지면기사 판단
-        paper_val = "online"
-        for info in bx.select("div.info_group span.info"):
-            if "면" in info.text:
-                paper_val = "print"
+        # 원래 페이지 박스별 뉴스 기사 수집
+        try:
+            title_val = bx.select_one("a.news_tit").text
+            url_val = bx.select_one("a.news_tit")["href"]
+            date_val = bx.select("span.info")[-1].text
+            media_val = bx.select_one("a.info").text.replace("언론사 선정", "")
 
-        dic_news["paper"].append(paper_val)
+            # 지면기사 판단
+            paper_val = "online"
+            for info in bx.select("div.info_group span.info"):
+                if "면" in info.text:
+                    paper_val = "print"
 
-        # 기자 이름 판단
-        writer_val = ""
-        if "네이버뉴스" in bx.select("a.info")[-1].text:
-            url_writer = bx.select("a.info")[-1]["href"]
-            resp_wrt = requests.get(url_writer)
-            soup_wrt = BeautifulSoup(resp_wrt.text, "html.parser")
+            # 기자 이름 판단
+            writer_val = ""
+            if "네이버뉴스" in bx.select("a.info")[-1].text:
+                url_writer = bx.select("a.info")[-1]["href"]
+                resp_wrt = requests.get(url_writer)
+                soup_wrt = BeautifulSoup(resp_wrt.text, "html.parser")
 
-            # 기자명이 있다면
-            if soup_wrt.select("em.media_end_head_journalist_name"):
-                writer_val = soup_wrt.select("em.media_end_head_journalist_name")[
-                    0
-                ].text
-                writer_val = writer_val.replace("기자", "").strip()
+                # 기자명이 있다면
+                if soup_wrt.select("em.media_end_head_journalist_name"):
+                    writer_val = soup_wrt.select("em.media_end_head_journalist_name")[
+                        0
+                    ].text
+                    writer_val = writer_val.replace("기자", "").strip()
+        except:
+            if not date_val:
+                date_val = "error"
+            if not media_val:
+                media_val = "error"
+            if not paper_val:
+                paper_val = "error"
+            if not writer_val:
+                writer_val = "error"
 
+        # 내용 입력
         dic_news["writer"].append(writer_val)
+        dic_news["title"].append(title_val)
+        dic_news["date"].append(date_val)
+        dic_news["media"].append(media_val)
+        dic_news["url"].append(url_val)
+        dic_news["paper"].append(paper_val)
 
         # 더보기 페이지 박스별 뉴스 기사 수집
         if bx.select("a.news_more"):
@@ -142,7 +164,7 @@ def parse_data(soup):
                 dic_news["title"].append(div.select_one("a.news_tit").text)
                 dic_news["date"].append(div.select("span.info")[-1].text)
                 dic_news["media"].append(
-                    div.select_one("a.info").text.replace("언론사 선정", "")
+                    div.select_one(".press").text.replace("언론사 선정", "")
                 )
                 dic_news["url"].append(div.select_one("a.news_tit")["href"])
 
@@ -218,20 +240,23 @@ def clean_data(df):
     df_final = df.drop_duplicates(ignore_index=True)
     n_final = len(df_final)
 
+    # 3. 언론사 클린
+
     return df_final, n_total, n_duplicates, n_final
 
 
 if __name__ == "__main__":
+    IS_COLAB = False
     keyword = "레노버"
-    startdate = "2024.01.01"
-    enddate = "2024.02.28"
+    startdate = "2024.02.27"
+    enddate = "2024.02.27"
 
     print("입력하신 검색어 : ", keyword)
     print("입력하신 검색 기간 : ", f"{startdate} ~ {enddate}")
 
-    soup = get_data(keyword, startdate, enddate)
+    soup = get_data(keyword, startdate, enddate, IS_COLAB)
     df = parse_data(soup)
-    df_clean = clean_data(df)
+    df_final, n_total, n_duplicates, n_final = clean_data(df)
 
     name = f"네이버뉴스_{keyword}_{startdate}-{enddate}.xlsx"
-    df_clean.to_excel(name, index=False)
+    df_final.to_excel(name, index=False)
